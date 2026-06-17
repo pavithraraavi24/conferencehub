@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConferenceHub — Event Management Platform</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;
+  --bg2:#0d1017;
+  --bg3:#121621;
+  --bg4:#181d2c;
+  --text:#e8eaf2;
+  --text2:#8b90a8;
+  --text3:#525770;
+  --border:#1c2135;
+  --border2:#252d44;
+  --accent:#6366f1;
+  --accent2:#818cf8;
+  --accent-bg:rgba(99,102,241,0.1);
+  --accent-border:rgba(99,102,241,0.3);
+  --cyan:#06b6d4;
+  --cyan-bg:rgba(6,182,212,0.08);
+  --success:#10b981;
+  --success-bg:rgba(16,185,129,0.1);
+  --success-border:rgba(16,185,129,0.25);
+  --warning:#f59e0b;
+  --warning-bg:rgba(245,158,11,0.1);
+  --danger:#ef4444;
+  --danger-bg:rgba(239,68,68,0.1);
+  --r:8px;--rl:12px;--rxl:16px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* ── layout ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 1rem;flex-shrink:0;display:flex;flex-direction:column;gap:0}
+.main{flex:1;overflow:hidden}
+.topbar{height:60px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem}
+.content{padding:2rem;max-width:1100px}
+
+/* ── sidebar ── */
+.logo{display:flex;align-items:center;gap:10px;padding:0 0.5rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
+.logo-icon{width:34px;height:34px;background:var(--accent);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.logo-name{font-size:16px;font-weight:600;color:var(--text)}
+.logo-badge{font-size:10px;padding:1px 6px;background:var(--success-bg);color:var(--success);border-radius:4px;border:1px solid var(--success-border)}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:0 0.5rem;margin:1rem 0 0.4rem}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);color:var(--text2);cursor:pointer;font-size:14px;transition:all 0.15s;border:1px solid transparent;margin-bottom:2px}
+.nav-item:hover{background:var(--bg4);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent2);border-color:var(--accent-border)}
+.nav-item i{font-size:17px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;font-size:11px;padding:1px 7px;background:var(--accent);color:#fff;border-radius:10px}
+.sidebar-footer{margin-top:auto;padding-top:1rem;border-top:1px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px 6px}
+.user-av{width:30px;height:30px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent2)}
+.user-name{font-size:13px;font-weight:500;color:var(--text)}
+.user-role{font-size:11px;color:var(--text3)}
+
+/* ── topbar ── */
+.topbar-title{font-size:16px;font-weight:500;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.pulse-wrap{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+.topbar-btn{width:34px;height:34px;border-radius:var(--r);background:transparent;border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;position:relative}
+.topbar-btn:hover{background:var(--bg3);color:var(--text)}
+.notif-badge{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--bg2)}
+
+/* ── section ── */
+.section{display:none;animation:fadeIn .2s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── typography ── */
+.page-title{font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--text2);margin-bottom:1.5rem}
+.section-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem}
+
+/* ── metric cards ── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:1.75rem}
+.metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.1rem 1.25rem;position:relative;overflow:hidden;transition:border-color .2s}
+.metric:hover{border-color:var(--border2)}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.m-purple::before{background:var(--accent)}
+.metric.m-cyan::before{background:var(--cyan)}
+.metric.m-green::before{background:var(--success)}
+.metric.m-amber::before{background:var(--warning)}
+.metric-icon{font-size:18px;color:var(--text3);margin-bottom:10px}
+.metric-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.metric-label{font-size:12px;color:var(--text2);margin-top:4px}
+.metric-trend{font-size:11px;margin-top:8px;display:flex;align-items:center;gap:3px}
+.trend-up{color:var(--success)}
+.trend-warn{color:var(--warning)}
+
+/* ── cards ── */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:14px;font-weight:500;color:var(--text)}
+
+/* ── grid ── */
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.25rem;margin-bottom:1.25rem}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.25rem}
+
+/* ── badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.badge-green{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-amber{background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,.25)}
+.badge-red{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.badge-purple{background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent-border)}
+.badge-cyan{background:var(--cyan-bg);color:var(--cyan);border:1px solid rgba(6,182,212,.2)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.tag-tech{background:rgba(99,102,241,.15);color:var(--accent2)}
+.tag-design{background:rgba(236,72,153,.12);color:#f472b6}
+.tag-ai{background:rgba(6,182,212,.12);color:var(--cyan)}
+.tag-biz{background:rgba(245,158,11,.12);color:var(--warning)}
+
+/* ── event cards ── */
+.event-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem;margin-bottom:.875rem;transition:all .2s;cursor:pointer}
+.event-card:hover{border-color:var(--border2);background:var(--bg4);transform:translateY(-1px)}
+.event-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.event-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.event-meta{font-size:13px;color:var(--text2);display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px}
+.event-meta span{display:flex;align-items:center;gap:5px}
+.event-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.speaker-stack{display:flex}
+.sp-av{width:24px;height:24px;border-radius:50%;border:2px solid var(--bg3);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-left:-6px}
+.sp-av:first-child{margin-left:0}
+.progress-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.progress-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ── search & filters ── */
+.toolbar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center}
+.search-wrap{flex:1;min-width:180px;position:relative}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px}
+.search-wrap input{padding-left:34px;height:36px}
+.filter-btn{height:36px;padding:0 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s;white-space:nowrap}
+.filter-btn:hover,.filter-btn.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
+
+/* ── form ── */
+input,select,textarea{background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;font-family:inherit;padding:8px 12px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+select option{background:var(--bg3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:13px;color:var(--text2);margin-bottom:5px;display:block;font-weight:500}
+.create-form{background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rl);padding:1.5rem;margin-bottom:1.5rem;display:none}
+.create-form.open{display:block;animation:fadeIn .2s ease}
+
+/* ── buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#5254cc;transform:translateY(-1px)}
+.btn-primary:active{transform:scale(.98)}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.btn-outline:hover{background:var(--bg4);border-color:var(--border2)}
+.btn-sm{padding:5px 12px;font-size:13px}
+.btn-danger{background:var(--danger-bg);border:1px solid rgba(239,68,68,.25);color:var(--danger)}
+.cta-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem}
+
+/* ── ticket ── */
+.ticket-type{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;transition:all .15s;margin-bottom:8px}
+.ticket-type:hover{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.04)}
+.ticket-type.selected{border-color:var(--accent);background:var(--accent-bg)}
+.ticket-name{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px}
+.ticket-desc{font-size:12px;color:var(--text2)}
+.ticket-price{font-size:18px;font-weight:700;color:var(--text)}
+.qty-ctrl{display:flex;align-items:center;gap:12px;margin-top:10px}
+.qty-btn{width:28px;height:28px;border-radius:6px;background:var(--bg4);border:1px solid var(--border2);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.qty-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.qty-val{font-size:16px;font-weight:600;color:var(--text);min-width:24px;text-align:center}
+
+/* ── feed ── */
+.feed-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;transition:background .1s}
+.feed-item:last-child{border-bottom:none}
+.feed-item.new-item{animation:slideIn .4s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:1.5px solid transparent}
+.av-purple{background:rgba(99,102,241,.15);color:var(--accent2);border-color:var(--accent-border)}
+.av-teal{background:rgba(16,185,129,.12);color:#34d399;border-color:rgba(52,211,153,.2)}
+.av-blue{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(96,165,250,.2)}
+.av-coral{background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(248,113,113,.2)}
+.av-amber{background:rgba(245,158,11,.1);color:#fbbf24;border-color:rgba(251,191,36,.2)}
+
+/* ── notif ── */
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.notif-item:last-child{border-bottom:none}
+.notif-item.new-item{animation:slideIn .4s ease}
+.ndot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.ndot-green{background:var(--success)}
+.ndot-blue{background:var(--accent)}
+.ndot-amber{background:var(--warning)}
+.ndot-red{background:var(--danger)}
+
+/* ── attendees table ── */
+.table-wrap{overflow-x:auto}
+.atable{width:100%;border-collapse:collapse;font-size:13px}
+.atable th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.atable td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+.atable tr:last-child td{border-bottom:none}
+.atable tr:hover td{background:var(--bg4)}
+.atable td:first-child{color:var(--text)}
+
+/* ── chart container ── */
+.chart-wrap{position:relative;height:200px;margin-top:4px}
+
+/* ── toast ── */
+#toast-stack{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rl);padding:12px 16px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:toastIn .3s ease;min-width:280px;max-width:340px;pointer-events:all}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+.toast.out{animation:toastOut .3s ease forwards}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── hero ── */
+.hero-bg{background:linear-gradient(135deg,rgba(99,102,241,.06) 0%,rgba(6,182,212,.04) 100%);border:1px solid var(--border);border-radius:var(--rxl);padding:2.5rem;margin-bottom:1.75rem;position:relative;overflow:hidden}
+.hero-bg::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.08) 0%,transparent 70%);pointer-events:none}
+.hero-bg::after{content:'';position:absolute;bottom:-40px;left:20%;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.06) 0%,transparent 70%);pointer-events:none}
+.hero-eyebrow{font-size:12px;font-weight:600;color:var(--accent2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hero-title{font-size:32px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:10px}
+.hero-title span{color:var(--accent2)}
+.hero-sub{font-size:15px;color:var(--text2);max-width:560px;line-height:1.7;margin-bottom:1.5rem}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--border);margin-top:2rem;padding-top:1.5rem}
+.hstat{text-align:center;padding:.5rem}
+.hstat-num{font-size:28px;font-weight:700;color:var(--text)}
+.hstat-label{font-size:12px;color:var(--text2);margin-top:2px}
+.hstat+.hstat{border-left:1px solid var(--border)}
+
+/* ── features ── */
+.feature-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px}
+.fi-purple{background:var(--accent-bg);color:var(--accent2)}
+.fi-cyan{background:var(--cyan-bg);color:var(--cyan)}
+.fi-green{background:var(--success-bg);color:var(--success)}
+.fi-amber{background:var(--warning-bg);color:var(--warning)}
+
+/* ── success screen ── */
+.success-screen{text-align:center;padding:2.5rem 1rem}
+.success-icon{width:64px;height:64px;border-radius:50%;background:var(--success-bg);border:1px solid var(--success-border);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:28px;color:var(--success)}
+
+/* ── mobile ── */
+@media(max-width:700px){
+  .sidebar{display:none}
+  .hero-stats{grid-template-columns:repeat(2,1fr)}
+  .hero-title{font-size:24px}
+  .form-row{grid-template-columns:1fr}
+  .content{padding:1.25rem}
+}
+</style>
+</head>
+<body>
+
+<div id="toast-stack"></div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-calendar-event"></i></div>
+      <div>
+        <div class="logo-name">ConferenceHub</div>
+        <span class="logo-badge">LIVE</span>
+      </div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="nav('home',this)"><i class="ti ti-home"></i> Home</div>
+    <div class="nav-item" onclick="nav('events',this)"><i class="ti ti-calendar"></i> Events <span class="nav-badge" id="sb-ev-count">4</span></div>
+    <div class="nav-item" onclick="nav('tickets',this)"><i class="ti ti-ticket"></i> Tickets</div>
+
+    <div class="nav-section">Organizer</div>
+    <div class="nav-item" onclick="nav('dashboard',this)"><i class="ti ti-chart-bar"></i> Dashboard</div>
+    <div class="nav-item" onclick="nav('attendees',this)"><i class="ti ti-users"></i> Attendees</div>
+
+    <div class="nav-section">Settings</div>
+    <div class="nav-item" style="opacity:.5;cursor:default"><i class="ti ti-settings"></i> Settings</div>
+    <div class="nav-item" style="opacity:.5;cursor:default"><i class="ti ti-shield"></i> Access control</div>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-av">PR</div>
+        <div>
+          <div class="user-name">Pavi R.</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Home</div>
+      <div class="topbar-right">
+        <div class="pulse-wrap"><span class="pulse"></span> Live</div>
+        <button class="topbar-btn" title="Notifications" onclick="nav('dashboard',document.querySelectorAll('.nav-item')[3])">
+          <i class="ti ti-bell"></i>
+          <span class="notif-badge"></span>
+        </button>
+        <button class="topbar-btn" title="Search"><i class="ti ti-search"></i></button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- HOME -->
+      <div id="home" class="section active">
+        <div class="hero-bg">
+          <div class="hero-eyebrow"><span class="pulse" style="width:6px;height:6px"></span> Platform active — real-time sync enabled</div>
+          <div class="hero-title">Your events,<br><span>perfectly organized</span></div>
+          <div class="hero-sub">Create conferences, manage ticketing, track attendees in real time, and get actionable insights — all in one sleek platform.</div>
+          <div class="cta-row">
+            <button class="btn btn-primary" onclick="nav('events',document.querySelectorAll('.nav-item')[1])"><i class="ti ti-plus"></i> Create event</button>
+            <button class="btn btn-outline" onclick="nav('dashboard',document.querySelectorAll('.nav-item')[3])"><i class="ti ti-chart-bar"></i> View dashboard</button>
+            <button class="btn btn-outline" onclick="nav('tickets',document.querySelectorAll('.nav-item')[2])"><i class="ti ti-ticket"></i> Get tickets</button>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><div class="hstat-num" id="h-events">24</div><div class="hstat-label">Active events</div></div>
+            <div class="hstat"><div class="hstat-num" id="h-attendees">3,841</div><div class="hstat-label">Attendees</div></div>
+            <div class="hstat"><div class="hstat-num">$127K</div><div class="hstat-label">Revenue</div></div>
+            <div class="hstat"><div class="hstat-num">98%</div><div class="hstat-label">Uptime</div></div>
+          </div>
+        </div>
+
+        <div class="section-label">What you can do</div>
+        <div class="g3" style="margin-bottom:0">
+          <div class="card">
+            <div class="feature-icon fi-purple"><i class="ti ti-calendar-event"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Event creation</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Build events with sessions, speakers, and venues in minutes.</div>
+          </div>
+          <div class="card">
+            <div class="feature-icon fi-cyan"><i class="ti ti-ticket"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Smart ticketing</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Multi-tier tickets with QR codes and secure payment processing.</div>
+          </div>
+          <div class="card">
+            <div class="feature-icon fi-green"><i class="ti ti-users"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Attendee tracking</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Real-time check-in, role-based access, and live analytics.</div>
+          </div>
+          <div class="card">
+            <div class="feature-icon fi-amber"><i class="ti ti-bell"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Instant alerts</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Notifications for registrations, payments, and capacity warnings.</div>
+          </div>
+          <div class="card">
+            <div class="feature-icon fi-purple"><i class="ti ti-lock"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Secure payments</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">SSL-encrypted checkout with instant confirmation emails.</div>
+          </div>
+          <div class="card">
+            <div class="feature-icon fi-cyan"><i class="ti ti-chart-pie"></i></div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Live analytics</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Revenue trends, check-in rates, and attendee demographics.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div id="events" class="section">
+        <div class="page-title">Events</div>
+        <div class="page-sub">Manage and create conferences, workshops, and meetups.</div>
+
+        <div class="toolbar">
+          <div class="search-wrap">
+            <i class="ti ti-search"></i>
+            <input type="text" placeholder="Search events..." id="ev-search" oninput="filterEvents()">
+          </div>
+          <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setFilter('tech',this)">Tech</button>
+          <button class="filter-btn" onclick="setFilter('design',this)">Design</button>
+          <button class="filter-btn" onclick="setFilter('ai',this)">AI</button>
+          <button class="filter-btn" onclick="setFilter('biz',this)">Business</button>
+          <button class="btn btn-primary btn-sm" onclick="toggleCreate()" style="margin-left:auto"><i class="ti ti-plus"></i> New event</button>
+        </div>
+
+        <div class="create-form" id="create-form">
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:1rem">Create new event</div>
+          <div class="form-group"><label class="form-label">Event name</label><input type="text" placeholder="e.g. TechSummit 2026" id="new-name"></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Date</label><input type="date" id="new-date"></div>
+            <div class="form-group"><label class="form-label">Category</label><select id="new-cat"><option value="tech">Tech</option><option value="design">Design</option><option value="ai">AI</option><option value="biz">Business</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Venue</label><input type="text" placeholder="Location or Online" id="new-venue"></div>
+            <div class="form-group"><label class="form-label">Capacity</label><input type="number" placeholder="500" id="new-cap"></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-outline" onclick="toggleCreate()">Cancel</button>
+            <button class="btn btn-primary" onclick="addEvent()"><i class="ti ti-check"></i> Create event</button>
+          </div>
+        </div>
+
+        <div id="events-list"></div>
+      </div>
+
+      <!-- TICKETS -->
+      <div id="tickets" class="section">
+        <div class="page-title">Get tickets</div>
+        <div class="page-sub">Register for an event and secure your spot.</div>
+
+        <div class="g2">
+          <div>
+            <div class="section-label">Choose event</div>
+            <div id="t-event-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div>
+            <div class="section-label">Ticket details</div>
+            <div class="card" id="ticket-panel">
+              <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+                <div style="font-size:15px;font-weight:600;color:var(--text)" id="t-ev-name">Select an event →</div>
+                <div style="font-size:13px;color:var(--text2);margin-top:3px" id="t-ev-date"></div>
+              </div>
+              <div class="section-label">Ticket type</div>
+              <div id="ticket-types">
+                <div class="ticket-type selected" onclick="selectTix(this,'General','$49')">
+                  <div><div class="ticket-name">General admission</div><div class="ticket-desc">Access to all sessions & workshops</div></div>
+                  <span class="ticket-price">$49</span>
+                </div>
+                <div class="ticket-type" onclick="selectTix(this,'VIP','$149')">
+                  <div><div class="ticket-name">VIP</div><div class="ticket-desc">Priority seating + networking dinner</div></div>
+                  <span class="ticket-price">$149</span>
+                </div>
+                <div class="ticket-type" onclick="selectTix(this,'Early Bird','$29')">
+                  <div><div class="ticket-name"><span style="color:var(--warning)"><i class="ti ti-bolt"></i></span> Early bird</div><div class="ticket-desc">Limited — 12 remaining</div></div>
+                  <span class="ticket-price">$29</span>
+                </div>
+              </div>
+              <div style="margin:12px 0" class="form-group">
+                <label class="form-label">Quantity</label>
+                <div class="qty-ctrl">
+                  <button class="qty-btn" onclick="changeQty(-1)"><i class="ti ti-minus"></i></button>
+                  <span class="qty-val" id="qty-val">1</span>
+                  <button class="qty-btn" onclick="changeQty(1)"><i class="ti ti-plus"></i></button>
+                  <span style="font-size:13px;color:var(--text2)">Total: <strong style="color:var(--text)" id="qty-total">$49</strong></span>
+                </div>
+              </div>
+              <div class="form-group"><label class="form-label">Full name</label><input type="text" placeholder="Your name" id="reg-name"></div>
+              <div class="form-group"><label class="form-label">Email address</label><input type="email" placeholder="you@email.com" id="reg-email"></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="register()"><i class="ti ti-lock"></i> Secure checkout — <span id="reg-price">$49</span></button>
+              <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px"><i class="ti ti-shield-check"></i> SSL encrypted · Instant QR code email</div>
+            </div>
+            <div class="card" id="reg-success" style="display:none">
+              <div class="success-screen">
+                <div class="success-icon"><i class="ti ti-circle-check"></i></div>
+                <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">You're registered!</div>
+                <div style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Check your email for your QR code and event details.</div>
+                <button class="btn btn-outline btn-sm" onclick="resetTickets()"><i class="ti ti-refresh"></i> Register another</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div id="dashboard" class="section">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Real-time overview of all events and registrations.</div>
+
+        <div class="metrics">
+          <div class="metric m-purple">
+            <div class="metric-icon"><i class="ti ti-users"></i></div>
+            <div class="metric-val" id="m-att">3,841</div>
+            <div class="metric-label">Total attendees</div>
+            <div class="metric-trend trend-up"><i class="ti ti-trending-up"></i> +12 this hour</div>
+          </div>
+          <div class="metric m-green">
+            <div class="metric-icon"><i class="ti ti-door-enter"></i></div>
+            <div class="metric-val" id="m-cin">2,104</div>
+            <div class="metric-label">Checked in</div>
+            <div class="metric-trend trend-up" id="m-cin-pct"><i class="ti ti-trending-up"></i> 54.8% rate</div>
+          </div>
+          <div class="metric m-cyan">
+            <div class="metric-icon"><i class="ti ti-ticket"></i></div>
+            <div class="metric-val" id="m-tix">3,912</div>
+            <div class="metric-label">Tickets sold</div>
+            <div class="metric-trend trend-up"><i class="ti ti-trending-up"></i> +28 today</div>
+          </div>
+          <div class="metric m-amber">
+            <div class="metric-icon"><i class="ti ti-currency-dollar"></i></div>
+            <div class="metric-val">$127K</div>
+            <div class="metric-label">Revenue</div>
+            <div class="metric-trend trend-up"><i class="ti ti-trending-up"></i> +$2.1K today</div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Revenue trend (7 days)</span>
+              <span class="badge badge-green"><i class="ti ti-trending-up"></i> +18%</span>
+            </div>
+            <div class="chart-wrap"><canvas id="revenue-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Registrations by event</span>
+              <span class="badge badge-purple">Live</span>
+            </div>
+            <div class="chart-wrap"><canvas id="reg-chart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent registrations</span>
+              <span class="pulse" style="width:6px;height:6px"></span>
+            </div>
+            <div id="activity-feed"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Notifications</span>
+              <span class="badge badge-cyan" id="notif-count">5 new</span>
+            </div>
+            <div id="notif-feed"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATTENDEES -->
+      <div id="attendees" class="section">
+        <div class="page-title">Attendees</div>
+        <div class="page-sub">Live attendee roster with check-in status.</div>
+        <div class="toolbar" style="margin-bottom:1rem">
+          <div class="search-wrap">
+            <i class="ti ti-search"></i>
+            <input type="text" placeholder="Search attendees..." id="att-search" oninput="filterAttendees()">
+          </div>
+          <button class="filter-btn active" onclick="setAttFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setAttFilter('checked-in',this)">Checked in</button>
+          <button class="filter-btn" onclick="setAttFilter('registered',this)">Pending</button>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap">
+            <table class="atable">
+              <thead><tr><th>Name</th><th>Event</th><th>Ticket</th><th>Registered</th><th>Status</th></tr></thead>
+              <tbody id="att-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+var evColor={tech:'tag-tech',design:'tag-design',ai:'tag-ai',biz:'tag-biz'};
+var evLabel={tech:'Tech',design:'Design',ai:'AI',biz:'Business'};
+
+var events=[
+  {id:1,name:"TechSummit 2026",date:"2026-07-15",venue:"SF Convention Center",cat:"tech",capacity:500,registered:412,speakers:["AK","SL","MR"],status:"open"},
+  {id:2,name:"Product Design Conference",date:"2026-07-28",venue:"NYC Javits Center",cat:"design",capacity:300,registered:289,speakers:["JP","NY"],status:"almost-full"},
+  {id:3,name:"AI & ML World Forum",date:"2026-08-10",venue:"Online — Virtual",cat:"ai",capacity:1000,registered:756,speakers:["RC","TW","LA","SM"],status:"open"},
+  {id:4,name:"Startup Founders Summit",date:"2026-08-22",venue:"Austin Convention Center",cat:"biz",capacity:200,registered:87,speakers:["DO"],status:"open"}
+];
+
+var attendees=[
+  {name:"Jordan Lee",initials:"JL",av:"av-purple",event:"TechSummit 2026",ticket:"VIP",date:"Jun 14",status:"checked-in"},
+  {name:"Priya Nair",initials:"PN",av:"av-teal",event:"AI & ML World Forum",ticket:"General",date:"Jun 14",status:"registered"},
+  {name:"Marcus Webb",initials:"MW",av:"av-blue",event:"Product Design Conf.",ticket:"Early Bird",date:"Jun 13",status:"checked-in"},
+  {name:"Sofia Chen",initials:"SC",av:"av-coral",event:"TechSummit 2026",ticket:"General",date:"Jun 13",status:"registered"},
+  {name:"Aiden Park",initials:"AP",av:"av-purple",event:"Startup Founders",ticket:"General",date:"Jun 12",status:"checked-in"},
+  {name:"Lena Torres",initials:"LT",av:"av-amber",event:"AI & ML World Forum",ticket:"VIP",date:"Jun 12",status:"registered"},
+  {name:"Ryan Kim",initials:"RK",av:"av-blue",event:"TechSummit 2026",ticket:"General",date:"Jun 12",status:"checked-in"},
+  {name:"Zara Ahmed",initials:"ZA",av:"av-coral",event:"Product Design Conf.",ticket:"VIP",date:"Jun 11",status:"checked-in"}
+];
+
+var feed=[
+  {name:"Jordan Lee",initials:"JL",av:"av-purple",event:"TechSummit 2026",ticket:"VIP",time:"2m ago"},
+  {name:"Priya Nair",initials:"PN",av:"av-teal",event:"AI & ML Forum",ticket:"General",time:"5m ago"},
+  {name:"Marcus Webb",initials:"MW",av:"av-blue",event:"Design Conf.",ticket:"Early Bird",time:"9m ago"},
+  {name:"Sofia Chen",initials:"SC",av:"av-coral",event:"TechSummit 2026",ticket:"General",time:"14m ago"},
+  {name:"Aiden Park",initials:"AP",av:"av-amber",event:"Startup Summit",ticket:"General",time:"21m ago"}
+];
+
+var notifs=[
+  {dot:"ndot-green",text:"New VIP registration for TechSummit 2026",time:"2m ago"},
+  {dot:"ndot-amber",text:"Product Design Conf. is 96% full — 11 spots left",time:"8m ago"},
+  {dot:"ndot-blue",text:"Payment confirmed: $149 from Jordan Lee",time:"12m ago"},
+  {dot:"ndot-green",text:"Check-in spike: 42 attendees in last 10 min",time:"18m ago"},
+  {dot:"ndot-blue",text:"AI & ML Forum reached 75% capacity",time:"31m ago"}
+];
+
+var activeFilter='all', activeAttFilter='all';
+var selTix={type:'General',price:'$49',basePrice:49};
+var selEvId=1;
+var qty=1;
+
+function nav(id, el){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  if(el) el.classList.add('active');
+  var titles={home:'Home',events:'Events',tickets:'Tickets',dashboard:'Dashboard',attendees:'Attendees'};
+  document.getElementById('topbar-title').textContent=titles[id]||id;
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderEvents();
+}
+
+function filterEvents(){renderEvents()}
+
+function renderEvents(){
+  var q=document.getElementById('ev-search').value.toLowerCase();
+  var el=document.getElementById('events-list');
+  var avColors=['av-purple','av-teal','av-blue','av-amber'];
+  el.innerHTML=events.filter(function(e){
+    return (activeFilter==='all'||e.cat===activeFilter) && (!q||e.name.toLowerCase().includes(q)||e.venue.toLowerCase().includes(q));
+  }).map(function(e){
+    var pct=Math.round(e.registered/e.capacity*100);
+    var badge=e.status==='almost-full'?'<span class="badge badge-amber"><i class="ti ti-alert-triangle"></i> Almost full</span>':'<span class="badge badge-green"><i class="ti ti-circle-check"></i> Open</span>';
+    var fillColor=pct>85?'var(--warning)':pct>60?'var(--accent)':'var(--success)';
+    var spkHtml=e.speakers.map(function(s,i){return '<div class="sp-av '+avColors[i%4]+'" title="Speaker '+s+'">'+s+'</div>'}).join('');
+    return '<div class="event-card"><div class="event-top"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="tag '+evColor[e.cat]+'">'+evLabel[e.cat]+'</span></div><div class="event-name">'+e.name+'</div><div class="event-meta"><span><i class="ti ti-calendar"></i> '+e.date+'</span><span><i class="ti ti-map-pin"></i> '+e.venue+'</span></div></div>'+badge+'</div><div class="progress-meta"><span style="color:var(--text2)">'+e.registered.toLocaleString()+' / '+e.capacity.toLocaleString()+' registered</span><span style="color:var(--text3)">'+pct+'%</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;background:'+fillColor+'"></div></div><div class="event-footer"><div style="display:flex;align-items:center;gap:8px"><div class="speaker-stack">'+spkHtml+'</div><span style="font-size:12px;color:var(--text3)">'+e.speakers.length+' speaker'+(e.speakers.length>1?'s':'')+'</span></div><button class="btn btn-outline btn-sm" onclick="goTicket('+e.id+')"><i class="ti ti-ticket"></i> Register</button></div></div>';
+  }).join('') || '<div style="text-align:center;padding:2rem;color:var(--text2)"><i class="ti ti-mood-sad" style="font-size:32px;display:block;margin-bottom:8px"></i>No events found</div>';
+}
+
+function goTicket(id){
+  selectTixEvent(id);
+  nav('tickets', document.querySelectorAll('.nav-item')[2]);
+}
+
+function toggleCreate(){
+  var f=document.getElementById('create-form');
+  f.classList.toggle('open');
+}
+
+function addEvent(){
+  var name=document.getElementById('new-name').value.trim();
+  if(!name){showToast('Please enter an event name','ndot-amber');return;}
+  var e={
+    id:events.length+1,
+    name:name,
+    date:document.getElementById('new-date').value||'TBD',
+    venue:document.getElementById('new-venue').value.trim()||'TBD',
+    cat:document.getElementById('new-cat').value,
+    capacity:parseInt(document.getElementById('new-cap').value)||100,
+    registered:0,speakers:['YO'],status:'open'
+  };
+  events.push(e);
+  renderEvents();
+  renderTixEvents();
+  toggleCreate();
+  document.getElementById('sb-ev-count').textContent=events.length;
+  var n=parseInt(document.getElementById('h-events').textContent)+1;
+  document.getElementById('h-events').textContent=n;
+  showToast('Event "'+name+'" created!','ndot-green');
+}
+
+/* tickets */
+function renderTixEvents(){
+  var el=document.getElementById('t-event-list');
+  el.innerHTML=events.map(function(e){
+    var sel=e.id===selEvId;
+    return '<div onclick="selectTixEvent('+e.id+')" style="padding:12px 14px;border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:var(--rl);background:'+(sel?'var(--accent-bg)':'var(--bg3)')+';cursor:pointer;transition:all .15s"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span class="tag '+evColor[e.cat]+'">'+evLabel[e.cat]+'</span>'+(sel?'<i class="ti ti-check" style="color:var(--accent)"></i>':'')+'</div><div style="font-size:14px;font-weight:600;color:var(--text)">'+e.name+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px">'+e.date+' · '+e.venue+'</div></div>';
+  }).join('');
+}
+
+function selectTixEvent(id){
+  selEvId=id;
+  var e=events.find(function(x){return x.id===id});
+  document.getElementById('t-ev-name').textContent=e.name;
+  document.getElementById('t-ev-date').textContent=e.date+' · '+e.venue;
+  renderTixEvents();
+}
+
+function selectTix(el,type,price){
+  document.querySelectorAll('.ticket-type').forEach(function(t){t.classList.remove('selected')});
+  el.classList.add('selected');
+  var p=parseInt(price.replace('$',''));
+  selTix={type:type,price:price,basePrice:p};
+  updateTotal();
+}
+
+function changeQty(d){
+  qty=Math.max(1,Math.min(10,qty+d));
+  document.getElementById('qty-val').textContent=qty;
+  updateTotal();
+}
+
+function updateTotal(){
+  var t=selTix.basePrice*qty;
+  document.getElementById('qty-total').textContent='$'+t;
+  document.getElementById('reg-price').textContent='$'+t;
+}
+
+function register(){
+  var name=document.getElementById('reg-name').value.trim();
+  var email=document.getElementById('reg-email').value.trim();
+  if(!name||!email){showToast('Please fill in your name and email','ndot-amber');return;}
+  var e=events.find(function(x){return x.id===selEvId});
+  e.registered=Math.min(e.registered+qty,e.capacity);
+  document.getElementById('ticket-panel').style.display='none';
+  document.getElementById('reg-success').style.display='block';
+  renderEvents();
+  var ini=name.split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+  var avs=['av-purple','av-teal','av-blue','av-coral','av-amber'];
+  var av=avs[Math.floor(Math.random()*avs.length)];
+  for(var i=0;i<qty;i++){
+    feed.unshift({name:name,initials:ini,av:av,event:e.name,ticket:selTix.type,time:'just now'});
+    attendees.unshift({name:name,initials:ini,av:av,event:e.name,ticket:selTix.type,date:'Today',status:'registered'});
+  }
+  notifs.unshift({dot:'ndot-green',text:'New '+selTix.type+' (x'+qty+') registration: '+name+' for '+e.name,time:'just now'});
+  renderFeed();renderNotifs();renderAttendees();
+  var tot=parseInt(document.getElementById('m-att').textContent.replace(/,/g,''))+qty;
+  document.getElementById('m-att').textContent=tot.toLocaleString();
+  document.getElementById('h-attendees').textContent=tot.toLocaleString();
+  showToast('Registration confirmed for '+name+'!','ndot-green');
+}
+
+function resetTickets(){
+  qty=1;
+  document.getElementById('ticket-panel').style.display='block';
+  document.getElementById('reg-success').style.display='none';
+  document.getElementById('reg-name').value='';
+  document.getElementById('reg-email').value='';
+  document.getElementById('qty-val').textContent='1';
+  updateTotal();
+}
+
+/* attendees */
+function setAttFilter(f,btn){
+  activeAttFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){if(b.parentElement.id!=='events'&&!b.closest('#events'))b.classList.remove('active')});
+  btn.classList.add('active');
+  renderAttendees();
+}
+
+function filterAttendees(){renderAttendees()}
+
+function renderAttendees(){
+  var q=(document.getElementById('att-search')||{}).value||'';
+  q=q.toLowerCase();
+  var tbody=document.getElementById('att-body');
+  if(!tbody)return;
+  var filtered=attendees.filter(function(a){
+    return (activeAttFilter==='all'||a.status===activeAttFilter) && (!q||a.name.toLowerCase().includes(q)||a.event.toLowerCase().includes(q));
+  });
+  tbody.innerHTML=filtered.map(function(a){
+    var badge=a.status==='checked-in'?'<span class="badge badge-green"><i class="ti ti-check"></i> Checked in</span>':'<span class="badge badge-purple">Registered</span>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:9px"><div class="av '+a.av+'">'+a.initials+'</div>'+a.name+'</div></td><td>'+a.event+'</td><td>'+a.ticket+'</td><td>'+a.date+'</td><td>'+badge+'</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--text2)">No attendees found</td></tr>';
+}
+
+/* feed */
+function renderFeed(){
+  var el=document.getElementById('activity-feed');
+  if(!el)return;
+  el.innerHTML=feed.slice(0,6).map(function(f,i){
+    return '<div class="feed-item'+(i===0?' new-item':'')+'"><div class="av '+f.av+'">'+f.initials+'</div><div style="flex:1;min-width:0"><div style="color:var(--text);font-weight:500">'+f.name+'</div><div style="color:var(--text3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.ticket+' · '+f.event+' · '+f.time+'</div></div></div>';
+  }).join('');
+}
+
+function renderNotifs(){
+  var el=document.getElementById('notif-feed');
+  if(!el)return;
+  el.innerHTML=notifs.slice(0,5).map(function(n,i){
+    return '<div class="notif-item'+(i===0?' new-item':'')+'"><div class="ndot '+n.dot+'"></div><div style="flex:1"><div style="color:var(--text)">'+n.text+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">'+n.time+'</div></div></div>';
+  }).join('');
+  var nc=document.getElementById('notif-count');
+  if(nc)nc.textContent=Math.min(notifs.length,5)+' new';
+}
+
+/* toast */
+function showToast(msg,dot){
+  var stack=document.getElementById('toast-stack');
+  var t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML='<div class="ndot '+dot+'" style="width:8px;height:8px;flex-shrink:0"></div><span>'+msg+'</span>';
+  stack.appendChild(t);
+  setTimeout(function(){
+    t.classList.add('out');
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},300);
+  },3500);
+}
+
+/* charts */
+function initCharts(){
+  var revenueCtx=document.getElementById('revenue-chart');
+  if(!revenueCtx)return;
+  var cPurple='rgba(99,102,241,';
+  var cCyan='rgba(6,182,212,';
+  new Chart(revenueCtx,{
+    type:'line',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[{
+        label:'Revenue',
+        data:[12400,15200,13800,18900,17100,21300,22600],
+        borderColor:'#6366f1',
+        backgroundColor:'rgba(99,102,241,0.08)',
+        borderWidth:2,tension:.4,fill:true,
+        pointBackgroundColor:'#6366f1',pointRadius:3,pointHoverRadius:5
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#525770',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#525770',font:{size:11},callback:function(v){return '$'+Math.round(v/1000)+'K'}}}}}
+  });
+  var regCtx=document.getElementById('reg-chart');
+  if(!regCtx)return;
+  new Chart(regCtx,{
+    type:'bar',
+    data:{
+      labels:['TechSummit','Design Conf.','AI Forum','Startup Summit'],
+      datasets:[{
+        label:'Registered',
+        data:[412,289,756,87],
+        backgroundColor:['rgba(99,102,241,0.7)','rgba(236,72,153,0.6)','rgba(6,182,212,0.7)','rgba(245,158,11,0.6)'],
+        borderRadius:4,borderSkipped:false
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#525770',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#525770',font:{size:11}}}}}
+  });
+}
+
+/* live sim */
+var liveNames=[['Alex Kim','AK','av-blue'],['Nina Patel','NP','av-teal'],['Omar Hassan','OH','av-coral'],['Yuki Tanaka','YT','av-amber'],['Riya Sharma','RS','av-purple'],['Leo Chen','LC','av-blue']];
+var liveEvts=['TechSummit 2026','AI & ML Forum','Startup Summit','Design Conf.'];
+var liveTix=['General','VIP','Early Bird'];
+var liveNotifs=["New registration wave — 8 in last 5 min","Payment of $149 received","Session capacity warning: Hall A at 90%","Check-in rate up 4% this hour","Early bird tickets almost gone — 3 left","QR scan spike at registration desk"];
+function liveUpdate(){
+  var ci=parseInt(document.getElementById('m-cin').textContent.replace(/,/g,''));
+  var at=parseInt(document.getElementById('m-att').textContent.replace(/,/g,''));
+  ci+=Math.floor(Math.random()*2);
+  document.getElementById('m-cin').textContent=ci.toLocaleString();
+  var pEl=document.getElementById('m-cin-pct');
+  if(pEl)pEl.innerHTML='<i class="ti ti-trending-up"></i> '+(ci/at*100).toFixed(1)+'% rate';
+  var pick=liveNames[Math.floor(Math.random()*liveNames.length)];
+  feed.unshift({name:pick[0],initials:pick[1],av:pick[2],event:liveEvts[Math.floor(Math.random()*liveEvts.length)],ticket:liveTix[Math.floor(Math.random()*3)],time:'just now'});
+  if(feed.length>10)feed.pop();
+  var ndots=['ndot-green','ndot-blue','ndot-amber','ndot-red'];
+  notifs.unshift({dot:ndots[Math.floor(Math.random()*ndots.length)],text:liveNotifs[Math.floor(Math.random()*liveNotifs.length)],time:'just now'});
+  if(notifs.length>8)notifs.pop();
+  renderFeed();renderNotifs();
+  if(Math.random()>.65)showToast(liveNotifs[Math.floor(Math.random()*liveNotifs.length)],'ndot-'+['green','blue','amber'][Math.floor(Math.random()*3)]);
+}
+
+/* init */
+renderEvents();
+renderTixEvents();
+selectTixEvent(1);
+renderFeed();
+renderNotifs();
+renderAttendees();
+setTimeout(initCharts,100);
+setInterval(liveUpdate,5000);
+</script>
+</body>
+</html>
